@@ -1,1 +1,1 @@
-Sistema bancário utilizando dapper, dapper contrib e SQL
+Sistema bancário em C# utilizando dapper, dapper contrib e SQL

@@ -6,15 +6,12 @@ using Microsoft.Data.SqlClient;
 
 namespace BankSystem.Repositories
 {
-    public class ContaRepository
+    public class ContaRepository : Repository<Contas>
     {
-        private readonly string _connectionString;
+        private readonly SqlConnection _connection;
 
-        public ContaRepository(string connectionString)
-            => _connectionString = connectionString;
-
-        private IDbConnection GetConnection()
-            => new SqlConnection(_connectionString);
+        public ContaRepository(SqlConnection connection) : base(connection)
+            => _connection = connection;
 
         public decimal VerSaldo(int contaId)
         {
@@ -26,9 +23,14 @@ namespace BankSystem.Repositories
                 WHERE
                     Id = @IdDaConta";
 
-            using (var connection = GetConnection())
+            try
             {
-                return connection.QuerySingle<decimal>(query, new { IdDaConta = contaId });
+                _connection.Open();
+                return _connection.QuerySingle<decimal>(query, new { IdDaConta = contaId });
+            }
+            finally
+            {
+                _connection.Close();
             }
         }
 
@@ -45,9 +47,14 @@ namespace BankSystem.Repositories
                     DataTransacao
                 DESC";
 
-            using (var connection = GetConnection())
+            try
             {
-                return connection.Query<Transacoes>(query, new { IdDaConta = contaId });
+                _connection.Open();
+                return _connection.Query<Transacoes>(query, new { IdDaConta = contaId });
+            }
+            finally
+            {
+                _connection.Close();
             }
         }
 
@@ -68,11 +75,16 @@ namespace BankSystem.Repositories
                 VALUES
                     (@IdDaConta, @Valor, GETDATE(), 1)";
 
-            using (var connection = GetConnection())
+            try
             {
+                _connection.Open();
                 var deposito = new { IdDaConta = contaId, Valor = valor };
-                connection.Execute(queryUpdate, deposito);
-                connection.Execute(queryInsert, deposito);
+                _connection.Execute(queryUpdate, deposito);
+                _connection.Execute(queryInsert, deposito);
+            }
+            finally
+            {
+                _connection.Close();
             }
         }
 
@@ -93,15 +105,16 @@ namespace BankSystem.Repositories
                 VALUES 
                     (@IdDaConta, @Valor, GETDATE(), 2)";
 
-            using (var connection = GetConnection())
+            try
             {
+                _connection.Open();
                 var saque = new { IdDaConta = contaId, Valor = valor };
 
-                int linhasAfetadas = connection.Execute(queryUpdate, saque);
+                int linhasAfetadas = _connection.Execute(queryUpdate, saque);
 
                 if (linhasAfetadas > 0)
                 {
-                    connection.Execute(queryInsert, saque);
+                    _connection.Execute(queryInsert, saque);
                     return true;
                 }
                 else
@@ -110,8 +123,12 @@ namespace BankSystem.Repositories
                     return false;
                 }
             }
+            finally
+            {
+                _connection.Close();
+            }
         }
-        
+
         public bool Transferir(int contaOrigemId, int contaDestinoId, decimal valor)
         {
             var querySaque = @"
@@ -144,16 +161,16 @@ namespace BankSystem.Repositories
                 VALUES 
                     (@IdDestino, @Valor, 4, GETDATE())";
 
-            using (var connection = GetConnection())
+            try
             {
-                connection.Open();
+                _connection.Open();
 
-                using (var transaction = connection.BeginTransaction())
+                using (var transaction = _connection.BeginTransaction())
                 {
                     try
                     {
                         var transSaque = new { IdOrigem = contaOrigemId, Valor = valor };
-                        int linhasAfetadas = connection.Execute(querySaque, transSaque, transaction: transaction);
+                        int linhasAfetadas = _connection.Execute(querySaque, transSaque, transaction: transaction);
 
                         if (linhasAfetadas == 0)
                         {
@@ -162,10 +179,10 @@ namespace BankSystem.Repositories
                         }
 
                         var transDeposito = new { IdDestino = contaDestinoId, Valor = valor };
-                        connection.Execute(queryDeposito, transDeposito, transaction: transaction);
+                        _connection.Execute(queryDeposito, transDeposito, transaction: transaction);
 
-                        connection.Execute(queryInsertSaida, transSaque, transaction: transaction);
-                        connection.Execute(queryInsertEntrada, transDeposito, transaction: transaction);
+                        _connection.Execute(queryInsertSaida, transSaque, transaction: transaction);
+                        _connection.Execute(queryInsertEntrada, transDeposito, transaction: transaction);
 
                         transaction.Commit();
                         return true;
@@ -176,6 +193,56 @@ namespace BankSystem.Repositories
                         return false;
                     }
                 }
+            }
+            finally
+            {
+                _connection.Close();
+            }
+        }
+
+        public IEnumerable<Contas> GetByClienteId(int clienteId)
+        {
+            var query = @"
+                SELECT
+                    *
+                FROM
+                    Contas
+                WHERE
+                    ClienteId = @ClienteId";
+
+            var clientesId = new { ClienteId = clienteId };
+
+            try
+            {
+                _connection.Open();
+                return _connection.Query<Contas>(query, clientesId);
+            }
+            finally
+            {
+                _connection.Close();
+            }
+        }
+        
+        public Contas GetByAgenciaeNumero(string agencia, string numero)
+        {
+            var query = @"
+                SELECT
+                    *
+                FROM
+                    Contas
+                WHERE
+                    Agencia = @Agencia
+                AND
+                    NumeroConta = @Numero";
+
+            try
+            {
+                _connection.Open();
+                return _connection.QueryFirstOrDefault<Contas>(query, new { Agencia = agencia, Numero = numero });
+            }
+            finally
+            {
+                _connection.Close();
             }
         }
     }
