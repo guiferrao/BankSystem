@@ -40,7 +40,7 @@ namespace BankSystem.Repositories
                 SELECT
                     *
                 FROM
-                    Saldo
+                    Transacoes
                 WHERE
                     ContaId = @IdDaConta
                 ORDER BY
@@ -73,12 +73,12 @@ namespace BankSystem.Repositories
                     Transacoes 
                     (ContaId, Valor, DataTransacao, TipoTransacao)
                 VALUES
-                    (@IdDaConta, @Valor, GETDATE(), 1)";
+                    (@ContaId, @Valor, GETDATE(), 1)";
 
             try
             {
                 _connection.Open();
-                var deposito = new { IdDaConta = contaId, Valor = valor };
+                var deposito = new { ContaId = contaId, Valor = valor };
                 _connection.Execute(queryUpdate, deposito);
                 _connection.Execute(queryInsert, deposito);
             }
@@ -119,7 +119,6 @@ namespace BankSystem.Repositories
                 }
                 else
                 {
-                    Console.WriteLine("saldo insuficiente");
                     return false;
                 }
             }

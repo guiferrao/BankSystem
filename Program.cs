@@ -1,4 +1,4 @@
-﻿using BankSystem.Screens.UserScreens;
+﻿using BankSystem.Screens.ClientScreens;
 using Microsoft.Data.SqlClient;
 using Dapper;
 using BankSystem.Data;
@@ -13,12 +13,9 @@ namespace BankSystem
             SqlMapper.AddTypeHandler(new DateOnlyTypeHandler());
 
             Database.Connection = new SqlConnection(CONNECTION_STRING);
-            Database.Connection.Open();
 
             Load();
 
-            Console.ReadKey();
-            Database.Connection.Close();
         }
 
         private static void Load()

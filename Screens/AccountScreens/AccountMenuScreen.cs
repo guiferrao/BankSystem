@@ -1,6 +1,7 @@
 using BankSystem.Models;
 using BankSystem.Repositories;
 using BankSystem.Screens.ClientScreens;
+using BankSystem.Screens.TransactionsScreens;
 
 namespace BankSystem.Screens.AccountScreens
 {
@@ -52,7 +53,7 @@ namespace BankSystem.Screens.AccountScreens
                     var conta = repoContas.GetByAgenciaeNumero(numeroAgencia, numeroConta);
                     if (conta != null)
                     {
-                        //MenuTransacoesScreen.Load(conta.Id);
+                        MenuTransactionsScreen.Load(conta.Id);
                     }
                     else
                     {
